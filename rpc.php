@@ -374,7 +374,7 @@ function projected_sum_grades($catid, $cat_obj, $grade_values, $items) {
 // Writes a response string to be handled by javascript when the request
 // returns. Gleans data from the $items array for the textboxes whose values 
 // need to be updated on the page.
-function prepare_response_string($items) {
+function prepare_response_string($items, $all_grade_items) {
     $out = '';
     foreach ($items as $id => $item) {
         $calculated = isset($item->calculated) and $item->calculated;
@@ -385,9 +385,18 @@ function prepare_response_string($items) {
                 $out .= '|';
             }
 
-            $formatted = grade_format_gradevalue($item->value, $item, true, $item->display, $item->decimals);
+            if (!isset($all_grade_items[$id])) {
+                $formatted = 'ERROR';
+            } else {
+                $grade_item = $all_grade_items[$id];
 
-            $out .= 'calc_item_grade_' . $id . '=<b>' . $formatted . '</b>'; 
+                $formatted = grade_format_gradevalue(
+                    $item->value, $grade_item, true,
+                    $grade_item->get_displaytype(), $grade_item->get_decimals()
+                );
+            }
+
+            $out .= 'calc_item_grade_' . $id . '=<b>' . $formatted . '</b>';
         }
     }
 
@@ -512,6 +521,7 @@ $items = $course_data['items'];
 $categories = $course_data['categories'];
 $course_total = $course_data['course_total'];
 $letters = $course_data['letters'];
+$all_grade_items = grade_item::fetch_all(array('courseid' => $course_total->courseid));
 unset($course_data);
 
 // Add the new grades from textboxes to the items array
@@ -544,7 +554,8 @@ $ct_value = calculate_course_total($course_total, $items, $categories);
 
 $ct_value = grade_format_gradevalue($ct_value, $course_total, true, $course_total->display, $course_total->decimals);
 
-echo prepare_response_string($items) . 'calc_total_grade=<b>' . $ct_value . '</b>';
+echo prepare_response_string($items, $all_grade_items) . 'calc_total_grade=<b>' .
+    $ct_value . '</b>';
 
 if ($must_make_item_id) {
     echo '|must_make=' . calculate_must_make($must_make_item_id, $letters, $course_total, $items, $categories);
