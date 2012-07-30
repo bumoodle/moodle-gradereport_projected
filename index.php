@@ -145,6 +145,8 @@ if ($must_make_enabled) {
     echo '</div>';
 }
 
+echo html_writer::tag('div', '*'.get_string('estimated', 'gradereport_projected'), array('id' => 'estimatednote'));
+
 echo $OUTPUT->footer();
 
 ?>

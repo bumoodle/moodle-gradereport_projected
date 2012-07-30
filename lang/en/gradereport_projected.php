@@ -17,5 +17,7 @@ $string['projected:view'] = 'Calculate your projected final grade';
 $string['selectoneuser'] = 'Select a User';
 $string['your_teacher'] = 'Your instructor has disabled this feature.';
 $string['out_of'] = 'out of';
+$string['estimated'] = 'This assignment has yet to be completed. The grade shown in this box is an "projected grade", generated automatically using your course average and the time since this assignment\'s recommended completion date.';
+
 
 ?>

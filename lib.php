@@ -77,7 +77,8 @@ class grade_report_projected extends grade_report {
      * @param string $context
      * @param int $userid The id of the user
      */
-    function __construct($courseid, $gpr, $context, $userid) {
+    function __construct($courseid, $gpr, $context, $userid) 
+    {
         global $CFG, $DB;
         parent::__construct($courseid, $gpr, $context);
 
@@ -102,7 +103,8 @@ class grade_report_projected extends grade_report {
     /**
      * Prepares the headers and attributes of the flexitable.
      */
-    function setup_table() {
+    function setup_table() 
+    {
         global $CFG;
         /*
          * Table has 5-6 columns
@@ -139,7 +141,8 @@ class grade_report_projected extends grade_report {
         $this->table->setup();
     }
 
-    function fill_table() {
+    function fill_table() 
+    {
         global $CFG;
 
         $numusers = $this->get_numusers(false); // total course users
@@ -149,7 +152,8 @@ class grade_report_projected extends grade_report {
         $canviewhidden = has_capability('moodle/grade:viewhidden', get_context_instance(CONTEXT_COURSE, $this->courseid));
 
         // fetch or create all grades
-        foreach ($items as $key=>$unused) {
+        foreach ($items as $key=>$unused) 
+        {
             if (!$grade_grade = grade_grade::fetch(array('itemid'=>$items[$key]->id, 'userid'=>$this->user->id))) {
                 $grade_grade = new grade_grade();
                 $grade_grade->userid = $this->user->id;
@@ -160,11 +164,30 @@ class grade_report_projected extends grade_report {
         }
 
         $file = $CFG->dirroot. '/grade/report/simple_grader/lib/simple_gradelib.php';
-        if (file_exists($file)) {
+        
+        if (file_exists($file))
+        {
             require_once($file);
             require_once($CFG->dirroot. '/grade/report/simple_grader/lib/simple_grade_hook.php');
         }
 
+        //~ktemkin: create a new array of aggregates (e.g. category totals / averages)
+        //We'll use these aggreagates to estimate a student's future performance.
+        $aggragates = array();
+
+        //iterate through each of the _categories_ 
+        foreach ($items as $itemid => $item)
+        {
+            if($item->itemtype == 'category')
+            {
+                //get a reference to the corresponding grade item
+                $grade = $grades[$itemid];
+
+                //and use that grade item to compute the category grade as a fraction between zero and one
+                $aggregates[$item->iteminstance] = ($grade->finalgrade - $grade->rawgrademin) / ($grade->rawgrademax - $grade->rawgrademin);
+            }
+       }
+             
         $altered = array();
         $unknown = array();
 
@@ -174,7 +197,8 @@ class grade_report_projected extends grade_report {
 
             // adamzap
             // Fill course total data
-            if ($grade_item->itemtype == 'course') {
+            if ($grade_item->itemtype == 'course') 
+            {
                 $ct_data = new stdClass;
                 $ct_data->calculation = $grade_item->calculation;
                 $ct_data->aggregationcoef = $grade_item->aggregationcoef;
@@ -204,12 +228,17 @@ class grade_report_projected extends grade_report {
             $class = 'gradeitem';
             if ($grade_item->is_course_item()) {
                 $class = 'courseitem';
-            } else if ($grade_item->is_category_item()) {
+
+            } 
+            else if ($grade_item->is_category_item()) 
+            {
                 $class = 'categoryitem';
 
                 // make category totals invisible to students
-                if (!$this->showhiddenitems) {
-                    if (!$canviewhidden && $grade_item->is_hidden()) {
+                if (!$this->showhiddenitems) 
+                {
+                    if (!$canviewhidden && $grade_item->is_hidden()) 
+                    {
                         $class .= ' invisitext';
                     }
                 } else if ($this->showhiddenitems == 1 && $grade_item->is_hiddenuntil()) {
@@ -287,7 +316,8 @@ class grade_report_projected extends grade_report {
 
                 $item_data->excluded = $grade_grade->excluded;
 
-                if ($grade_item->itemtype == 'category') {
+                if ($grade_item->itemtype == 'category') 
+                {
                     $item_data->categoryid = $grade_item->iteminstance;
                     $item_data->parent = $cat->parent;
                     $this->ajax_data['categories'][$grade_item->iteminstance]->calculation = $grade_item->calculation;
@@ -320,8 +350,8 @@ class grade_report_projected extends grade_report {
             if ($grade_item->needsupdate) {
                 $data[] = '<span class="'.$hidden.$class.' gradingerror">'.get_string('error').'</span>';
 
-            } else if (!empty($CFG->grade_hiddenasdate) and $grade_grade->get_datesubmitted() and !$canviewhidden and $grade_grade->is_hidden()
-                   and !$grade_item->is_category_item() and !$grade_item->is_course_item()) {
+            } else if (!empty($CFG->grade_hiddenasdate) and $grade_grade->get_datesubmitted() and !$canviewhidden and $grade_grade->is_hidden() and !$grade_item->is_category_item() and !$grade_item->is_course_item()) 
+            {
                 // the problem here is that we do not have the time when grade value was modified, 'timemodified' is general modification date for grade_grades records
                 $data[] = '<span class="'.$hidden.$class.' datesubmitted">'.$excluded.get_string('submittedon', 'grades', userdate($grade_grade->get_datesubmitted(), get_string('strftimedatetimeshort'))).'</span>';
 
@@ -329,7 +359,8 @@ class grade_report_projected extends grade_report {
                 if (is_null($gradeval)) {
                 // adamzap
                 // Fill course total data for aggregation
-                    if ($grade_item->itemtype == 'course') {
+                    if ($grade_item->itemtype == 'course') 
+                    {
                         if (!$this->ajax_data['course_total']->calculation) {
                             $ct_cat = $grade_item->get_parent_category();
                             $ct_data = new stdClass;
@@ -353,12 +384,38 @@ class grade_report_projected extends grade_report {
                         }
 
                         $data[] = '<span id = "calc_total_grade" class="'.$hidden.$class.'"><b>'.$excluded. '0.00</b></span>';
-                    } else if ($grade_item->itemtype == 'category' || $grade_item->calculation) {
+
+                    } else if ($grade_item->itemtype == 'category' || $grade_item->calculation) 
+                    {
                         $data[] = '<span id = "calc_item_grade_' . $itemid . '" class="'.$hidden.$class.'"><b>'.$excluded . '0.00</b></span>';
-                    } else {
-                        $data[] = '<span class="'.$hidden.$class.'"><input type = "text" size = "4" id = "calc_grade_' . $itemid . 
+                    } 
+                    else 
+                    {
+
+
+                        //estimate a student's grade using the aggregates we stored earlier
+                        $estimated = round($aggregates[$grade_item->categoryid] * ($grade_item->grademax - $grade_item->grademin) + $grade_item->grademin, 2);
+
+                        //if it is believe that the user is unlikely to complete the item (for example, because the item was assigned a very long time ago)
+                        //then estimate that the user will get a zero, instead of using their aggregate
+                        if(grade_report_projected_completion_unlikely($grade_item))
+                            $estimated = 0;
+
+                        $new_data = html_writer::start_tag('span', array('class' => $hidden.$class));
+                        $new_data .= html_writer::empty_tag('input', array('type' => 'text', 'size' => 4, 'id' => 'calc_grade_'.$itemid, 'value' => $estimated));
+                        $new_data .= html_writer::empty_tag('input', array('type' => 'hidden', 'size' => 4, 'id' => 'minmax_'.$itemid, 'value' => $grade_item->grademin .'|' . $grade_item->grademax));
+                        $new_data .= html_writer::tag('span', ' '. get_string('out_of', 'gradereport_projected') . ' ' . round($grade_item->grademax, 2) .'*', array('id' => $itemid.'_range'));
+                        $new_data .= html_writer::end_tag('span');
+
+                        $data[] = $new_data;
+
+                        /*
+
+                        $data[] = 
+                            '<span class="'.$hidden.$class.'"><input type = "text" size = "4" id = "calc_grade_' . $itemid . 
                             '" /><input type = "hidden" id = "minmax_' . $itemid . '" value = "' . $grade_item->grademin . '|' . $grade_item->grademax . '"/>' .
                             '<span id="' . $itemid . '_range"> ' . get_string('out_of', 'gradereport_projected') . ' ' . round($grade_item->grademax) . '</span></span>';
+                         */
                     }
                 } else {
                     if ($grade_item->itemtype == 'course') {
@@ -435,16 +492,15 @@ class grade_report_projected extends grade_report {
      * @param bool $return Whether or not to return the data instead of printing it directly.
      * @return string
      */
-    function print_table($return=false) {
-        ob_start();
-        $this->table->print_html();
-        $html = ob_get_clean();
+    function print_table($return=false) 
+    {
+        if($return)
+            ob_start();
 
-        if ($return) {
-            return $html;
-        } else {
-            echo $html;
-        }
+        $this->table->print_html();
+        
+        if($return)
+            return ob_get_clean();
     }
 
     /**
@@ -525,6 +581,26 @@ function grade_report_projected_profilereport($course, $user) {
         }
         echo '</div>';
     }
+}
+
+function grade_report_projected_completion_unlikely($grade_item)
+{
+    global $DB;
+
+    $sql = 'SELECT completionexpected FROM {modules} m JOIN {course_modules} cm WHERE m.id = cm.module AND cm.course = :course AND cm.instance = :instance and m.name = :module';
+    $expecteddate = $DB->get_record_sql($sql, array('course' => $grade_item->courseid, 'instance' => $grade_item->iteminstance, 'module' => $grade_item->itemmodule));
+   
+    //TODO: generalize
+    //If more than 10 days have passed, guess that the user is unlikely to complete this assignment.
+    $max_length = 10 * 24 * 60 * 60;
+    $max_length_passed = (time() - intval($expecteddate->completionexpected)) > $max_length;
+
+    //if more than the maximum length of time has passed, guess that the user is unlikely to complete this assignment
+    if($expecteddate->completionexpected &&  $max_length_passed)
+        return true;
+
+    //otherwise, assume the user will
+    return false;
 }
 
 // Added to create dropdown list of users for instructors to switch to
